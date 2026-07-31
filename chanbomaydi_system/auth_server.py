@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, send_file
-import json, os, time, re, hashlib, hmac, urllib.parse
+import json, os, time, re, hashlib, hmac, urllib.parse, traceback
 
 from config import IPS_FILE
 from key_manager import (
@@ -64,13 +64,13 @@ def _parse_ipv4(s):
     return ".".join(str(p) for p in parts)
 
 def is_allowed(ip):
-    if not os.path.exists(IPS_FILE): 
+    if not os.path.exists(IPS_FILE):
         return False
     try:
         with open(IPS_FILE, "r") as f:
             db = json.load(f)
         return ip in db and db[ip]['expires_at'] > time.time()
-    except: 
+    except:
         return False
 
 def _is_system_frozen():
@@ -83,6 +83,24 @@ def _is_system_frozen():
         return bool(st.get("frozen", False))
     except Exception:
         return False
+
+# ─── FIX: Root route added so homepage does not return 404 ───────────────────
+@app.route('/')
+def index():
+    return jsonify({
+        "status": "ok",
+        "msg": "Nitro Proxy Auth Server is running",
+        "endpoints": [
+            "/check_auth",
+            "/miniapp",
+            "/miniapp/tutorial",
+            "/miniapp/mod_safety",
+            "/miniapp/activate",
+            "/miniapp/status",
+            "/game_patches/<filename>",
+        ]
+    }), 200
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route('/check_auth')
 def check_auth():
